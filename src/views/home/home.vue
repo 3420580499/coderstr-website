@@ -1,77 +1,246 @@
-<!-- <template>
-  <div class="home">
-    <button
-      class="py-2 px-4 font-semibold rounded-lg shadow-md text-white bg-green-500 hover:bg-green-700 border-none cursor-pointer"
-    >
-      Click me
-    </button>
-    <button
-      p="y-2 x-4"
-      font="semibold"
-      shadow="lg"
-      text="white"
-      bg="green-500 hover:green-700"
-      border="rounded-lg none "
-      cursor="pointer"
-    >
-      Click me
-    </button>
-    <div class="i-ic-baseline-account-circle bg-green-500 text-xl"></div>
+<template>
+  <div
+    class="home infinite-list"
+    v-infinite-scroll="load"
+    style="overflow: auto"
+  >
+    <div class="sort_box">
+      <div class="top_sort_list">
+        <div
+          v-for="item in sortList"
+          :key="item.id"
+          class="item"
+          @click="sortChangeClick(item.id)"
+          :style="{ color: sortId === item.id ? '#007fff' : 'black' }"
+        >
+          {{ item.name }}
+        </div>
+      </div>
+    </div>
+
+    <div class="content_box">
+      <div
+        class="select_rule_mode"
+        :style="{ marginRight: currentMode === 1 ? '320px' : '0' }"
+      >
+        <div class="left_rule option">
+          <div
+            v-for="item in ruleArray"
+            :key="item.rule"
+            class="item"
+            :style="{
+              color: currentRule === item.rule ? '#007fff' : '#71777c'
+            }"
+            @click="ruleClick(item.rule)"
+          >
+            {{ item.name }}
+          </div>
+        </div>
+        <div class="right_mode option">
+          <div
+            v-for="item in modeArray"
+            :key="item.mode"
+            class="item"
+            :style="{
+              color: currentMode === item.mode ? '#007fff' : '#71777c'
+            }"
+            @click="modeClick(item.mode)"
+          >
+            {{ item.name }}
+          </div>
+        </div>
+      </div>
+      <div class="big_mode_item" v-show="currentMode === 2">
+        <PostsListModeItem
+          v-for="item in sortPostsList"
+          :key="item.id"
+          :item-data="item"
+          class="infinite-list-mode-item"
+        />
+      </div>
+      <div class="content_box_left" v-show="currentMode === 1">
+        <PostsListItem
+          v-for="item in sortPostsList"
+          :key="item.id"
+          :item-data="item"
+          class="infinite-list-item"
+        >
+        </PostsListItem>
+      </div>
+      <div class="content_box_right" v-show="currentMode === 1">
+        <!-- 取后面三个来进行侧边栏进行展示 -->
+        <PostsListItemRight
+          :coverImg="sortPostsList[sortPostsList.length - 1].coverImg"
+          :title="sortPostsList[sortPostsList.length - 1].title"
+          :id="sortPostsList[sortPostsList.length - 1].id"
+          v-if="sortPostsList[sortPostsList.length - 1]"
+        />
+        <PostsListItemRight
+          :coverImg="sortPostsList[sortPostsList.length - 2].coverImg"
+          :title="sortPostsList[sortPostsList.length - 2].title"
+          :id="sortPostsList[sortPostsList.length - 2].id"
+          v-if="sortPostsList[sortPostsList.length - 2]"
+        />
+        <PostsListItemRight
+          :coverImg="sortPostsList[sortPostsList.length - 3].coverImg"
+          :title="sortPostsList[sortPostsList.length - 3].title"
+          :id="sortPostsList[sortPostsList.length - 3].id"
+          v-if="sortPostsList[sortPostsList.length - 3]"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
-<script setup lang="ts"></script>
-
-<style scoped></style> -->
-
-<template>
-  <md-editor-v3
-    v-model="state.text"
-    :editor-id="state.id"
-    preview-theme="smart-blue"
-    preview-only
-  >
-  </md-editor-v3>
-  <md-catalog
-    :editor-id="state.id"
-    :scroll-element="scrollElement"
-    class="log"
-  />
-  <!-- <div class="box">
-    <div class="content" ref="scrollElement">
-      <a name="md-editor-v3" href="">aaaa</a>
-    </div>
-  </div> -->
-</template>
-
 <script setup lang="ts">
-import { reactive, ref } from "vue"
-import MdEditorV3 from "md-editor-v3"
-import "md-editor-v3/lib/style.css"
+import { getAllSorts } from "@/api/mode1/index"
+import PostsListItem from "@/components/posts-list-item/postsListItem.vue"
+import PostsListModeItem from "@/components/posts-list-mode-item/postsListModeItem.vue"
+import { usePostsStore } from "@/stores/posts"
+import { storeToRefs } from "pinia"
+import { ref } from "vue"
+import PostsListItemRight from "@/components/posts-list-right-item/postsListRightItem.vue"
+import ruleArray from "@/assets/ts/data_rule"
+import modeArray from "@/assets/ts/data_mode"
+console.log("home")
 
-const { MdCatalog } = MdEditorV3
+const postsStore = usePostsStore()
 
-const state = reactive({
-  theme: "dark",
-  text: "## 😲 md-editor-v3\n\nMarkdown 编辑器，vue3 版本，使用 jsx 模板 和 typescript 开发，支持切换主题、prettier 美化文本等。\n\n### 🤖 基本演示\n\n**加粗**，<u>下划线</u>，_斜体_，~删除线~，上标<sup>26</sup>，下标<sub>[1]</sub>，`inline code`，[超链接](https://imzbf.cc)\n\n> 引用：这是一段引用。\n\n![mark and Emoji extension](https://imzbf.github.io/md-editor-v3/imgs/mark_emoji.gif)\n\n## 🤗 代码演示\n\n```vue\n<template>\n  <md-editor v-model=\"text\" />\n</template>\n\n<script setup>\nimport { ref } from 'vue';\nimport MdEditor from 'md-editor-v3';\nimport 'md-editor-v3/lib/style.css';\n\nconst text = ref('Hello Editor!');",
-  id: "my-editor"
-})
+// 分类list
+const sortList = ref<Array<any>>([])
+//请求哪个分类的id
+const sortId = ref<string>("0")
+const { currentRule, currentMode } = storeToRefs(postsStore)
+const getAllSortsList = async () => {
+  const result = await getAllSorts()
+  sortList.value = result.data[0]
+  sortId.value = result.data[0][0].id
+  postsStore.page = 0
+  postsStore.changeSortPostsList({ sortId: result.data[0][0].id, size: 8 })
+}
+getAllSortsList()
+const sortChangeClick = (id: string) => {
+  sortId.value = id
+  postsStore.page = 0
+  postsStore.changeSortPostsList({ sortId: id, size: 8 })
+}
 
-const scrollElement = ref(document.documentElement)
+// 文章列表相关
+const { sortPostsList } = storeToRefs(postsStore)
+const load = () => {
+  console.log("first")
+  console.log(postsStore.page)
+  // 第一次进来，因为盒子高度为100vh,而我们的数据高度不止100vh，会触底持续执行此方法，需要排除这个问题
+  if (postsStore.page === 0) return
+  postsStore.changeSortPostsList({ sortId: sortId.value, size: 8 })
+}
+
+const modeClick = (mode: number) => {
+  postsStore.currentMode = mode
+  postsStore.ruleClickChangeSortPostsList({ sortId: sortId.value, size: 8 })
+}
+const ruleClick = (rule: number) => {
+  postsStore.currentRule = rule
+  postsStore.ruleClickChangeSortPostsList({ sortId: sortId.value, size: 8 })
+}
 </script>
-<style scoped>
-.log {
-  position: fixed;
-  right: 0;
-  top: 300px;
-  width: 300px;
-  max-height: 600px;
+
+<style scoped lang="less">
+.home {
+  .sort_box {
+    // padding-top: 60px;
+    position: fixed;
+    left: 0;
+    top: 60px;
+    right: 0;
+    background-color: #fff;
+    z-index: 999;
+    .top_sort_list {
+      max-width: 960px;
+      margin: 0 auto;
+      height: 44px;
+      line-height: 44px;
+      display: flex;
+      .item {
+        padding-left: 13px;
+        padding-right: 13px;
+        flex-shrink: 0;
+      }
+      .item:nth-child(1) {
+        padding-left: 0;
+      }
+      @media screen and (max-width: 960px) {
+        overflow-x: auto;
+        &::-webkit-scrollbar {
+          display: none;
+        }
+        .item:nth-child(1) {
+          padding-left: 13px;
+        }
+      }
+    }
+  }
+  .content_box {
+    border-top: 124px solid #f2f3f5;
+    margin: 0 auto;
+    max-width: 1060px;
+    display: flex;
+    flex-wrap: wrap;
+    .select_rule_mode {
+      flex: 100%;
+      height: 35px;
+      line-height: 35px;
+      background-color: #fff;
+      @media screen and (max-width: 700px) {
+        margin-right: 0 !important;
+      }
+      display: flex;
+      justify-content: space-between;
+      .option {
+        display: flex;
+        .item {
+          padding-right: 15px;
+          padding-left: 15px;
+        }
+      }
+    }
+    .big_mode_item {
+      flex: 100%;
+    }
+    .content_box_left {
+      background-color: #fff;
+      flex: 1;
+      @media screen and (max-width: 700px) {
+        width: 100%;
+      }
+      .posts_list_item:nth-child(1) {
+        border-top: 1px solid #ccc;
+        padding-top: 15px;
+        margin-top: 0;
+      }
+    }
+    .content_box_right {
+      margin-left: 20px;
+      @media screen and (max-width: 700px) {
+        display: none;
+      }
+      width: 300px;
+    }
+  }
 }
-.box {
-  height: 100px;
-  overflow-y: scroll;
+
+.infinite-list {
+  height: 100vh;
+  padding: 0;
+  margin: 0;
+  list-style: none;
 }
-.content {
-  height: 200px;
+.infinite-list .infinite-list-item {
+  height: 140px;
+  background: #fff;
+  margin: 15px;
+}
+.infinite-list .infinite-list-item + .list-item {
+  margin-top: 10px;
 }
 </style>

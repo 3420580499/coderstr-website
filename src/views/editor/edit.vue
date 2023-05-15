@@ -1,7 +1,7 @@
 <template>
   <div class="edit">
-    <edit-header @publishHandleClick="publishClick" />
-    <el-drawer v-model="drawer" title="发布文章" class="el_drawer">
+    <edit-header @publishHandleClick="publishClick" ref="editHeaderRef"/>
+    <el-drawer v-model="drawer" title="发布文章">
       <div class="drawer-content">
         <el-form
           ref="ruleFormRef"
@@ -13,28 +13,35 @@
           status-icon
           label-position="left"
         >
-          <el-form-item label="添加标签" prop="tags">
-            <el-select
-              v-model="ruleForm.tags"
-              placeholder="请选择标签"
-              multiple
-              filterable
-              remote
-              :remote-method="remoteMethod"
-              :loading="loading"
-            >
+          <el-form-item label="选择分类" prop="sortId">
+            <el-select v-model="ruleForm.sortId" placeholder="请选择分类">
               <el-option
-                v-for="item in tagOptions"
+                v-for="item in sortList"
                 :key="item.id"
                 :label="item.name"
                 :value="item.id"
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="文章封面">
+          <el-form-item label="添加标签" prop="tags">
+            <el-select
+              v-model="ruleForm.tags"
+              placeholder="请选择标签"
+              multiple
+              filterable
+            >
+              <el-option
+                v-for="item in tagsList"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="文章封面" prop="coverImg">
             <el-upload
               class="avatar-uploader"
-              action="http://127.0.0.1:8013/upload/PostsCoverImg"
+              :action="getRemoteImgPath('upload/PostsCoverImg')"
               :show-file-list="false"
               :on-success="handleAvatarSuccess"
               :before-upload="beforeAvatarUpload"
@@ -42,7 +49,7 @@
             >
               <img
                 v-if="ruleForm.coverImg"
-                :src="'http://localhost:8013/' + ruleForm.coverImg"
+                :src="getRemoteImgPath(ruleForm.coverImg)"
                 class="avatar"
               />
               <el-icon v-else class="avatar-uploader-icon"
@@ -84,17 +91,45 @@
 
 <script setup lang="ts">
 import MdEditor from "md-editor-v3"
-import "md-editor-v3/lib/style.css" 
-import { ref, reactive, watch } from "vue"
+import "md-editor-v3/lib/style.css"
+import { ref, reactive, watch, watchEffect } from "vue"
 import axios from "axios"
 import EditHeader from "./cpns/editHeader.vue"
 import { type UploadProps, ElMessage } from "element-plus"
 import type { FormInstance, FormRules } from "element-plus"
 
-import { getTagsOfSearch, createPosts, updatePosts } from "@/api/mode1/index"
+import {
+  getTagsOfSearch,
+  createPosts,
+  updatePosts,
+  getAllSorts,
+  getMyPostContent,
+  getAllTags
+} from "@/api/mode1/index"
+import { debounce } from "lodash"
+import { useRouter, useRoute} from "vue-router"
+import local from "@/utils/localStorage"
+import { getRemoteImgPath } from "@/utils/getStaticImgPath"
+
+const router = useRouter()
+const route = useRoute()
 
 const drawer = ref(false)
 const loading = ref(false)
+const editHeaderRef = ref<any>(null)
+// 分类list
+const sortList = ref<Array<any>>([])
+const tagsList = ref<Array<any>>([])
+const getAllSortsList = async () => {
+  const result = await getAllSorts()
+  sortList.value = result.data[0]
+}
+const getAllTagsList = async () => {
+  const result = await getAllTags()
+  tagsList.value = result.data
+}
+getAllSortsList()
+getAllTagsList()
 const tagOptions = ref<
   Array<{
     name: string
@@ -107,7 +142,7 @@ const publishClick = (titleValue: string, showDraw: boolean) => {
 }
 const headers = ref()
 headers.value = {
-  Authorization: "Bearer " + localStorage.getItem("token")
+  Authorization: "Bearer " + local.getItem("token")
 }
 
 const remoteMethod = async (query: string) => {
@@ -124,9 +159,10 @@ const onUploadImg = async (files: any, callback: any) => {
         const form = new FormData()
         form.append("file", file)
         axios
-          .post("http://127.0.0.1:8013/upload/postsDetailImg", form, {
+          .post(getRemoteImgPath("upload/postsDetailImg"), form, {
             headers: {
-              "Content-Type": "multipart/form-data"
+              "Content-Type": "multipart/form-data",
+              Authorization: "Bearer " + local.getItem("token")
             }
           })
           .then((res) => rev(res))
@@ -136,7 +172,7 @@ const onUploadImg = async (files: any, callback: any) => {
   )
   callback(
     res.map((item) => {
-      return `http://127.0.0.1:8013/${item.data.data}`
+      return getRemoteImgPath(item.data.data)
     })
   )
 }
@@ -151,8 +187,8 @@ const handleAvatarSuccess: UploadProps["onSuccess"] = (
 }
 
 const beforeAvatarUpload: UploadProps["beforeUpload"] = (rawFile) => {
-  if (rawFile.type !== "image/jpeg") {
-    ElMessage.error("请上传.jpg格式的文件")
+  if (rawFile.type !== "image/jpeg" && rawFile.type !== "image/png") {
+    ElMessage.error("请上传.jpg或者.png格式的文件")
     return false
   } else if (rawFile.size / 1024 / 1024 > 2) {
     ElMessage.error("文件大小不要超过2MB!")
@@ -170,12 +206,13 @@ const ruleForm = reactive({
   title: "",
   coverImg: "",
   content: "",
-  contentHtml: ""
+  contentHtml: "",
+  sortId: undefined
 })
 // 监听到数据变化时，自动创建一篇草稿状态的文字
 const postsId = ref<string>("0")
 
-watch(ruleForm, async (newValue, oldValue) => {
+const lodashFn = debounce(async (newValue: any, oldValue: any) => {
   // 先发起创建请求后更新请求
   if (postsId.value === "0") {
     //拿到现有的数据去创建
@@ -185,7 +222,9 @@ watch(ruleForm, async (newValue, oldValue) => {
     //携带现有的数据和返回的postId去更新
     updatePosts(postsId.value, { ...ruleForm, tags: [...ruleForm.tags] })
   }
-})
+}, 1500)
+// 进行防抖处理
+watch(ruleForm, lodashFn)
 //
 const checkTags = (rule: any, value: any, callback: any) => {
   console.log(value.length)
@@ -208,54 +247,26 @@ const rules = reactive<FormRules>({
     },
     { validator: checkTags, trigger: "change" }
   ],
-  count: [
-    {
-      required: true,
-      message: "Please select Activity count",
-      trigger: "change"
-    }
-  ],
-  date1: [
-    {
-      type: "date",
-      required: true,
-      message: "Please pick a date",
-      trigger: "change"
-    }
-  ],
-  date2: [
-    {
-      type: "date",
-      required: true,
-      message: "Please pick a time",
-      trigger: "change"
-    }
-  ],
-  type: [
-    {
-      type: "array",
-      required: true,
-      message: "Please select at least one activity type",
-      trigger: "change"
-    }
-  ],
-  resource: [
-    {
-      required: true,
-      message: "Please select activity resource",
-      trigger: "change"
-    }
-  ],
-  desc: [
-    { required: true, message: "Please input activity form", trigger: "blur" }
-  ]
+  sortId: [{ required: true, message: "请选择分类", trigger: "blur" }],
+  coverImg: [{ required: true, message: "请上传封面", trigger: "blur" }]
 })
 
 const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
-  await formEl.validate((valid, fields) => {
+  await formEl.validate(async (valid, fields) => {
     if (valid) {
-      console.log("submit!")
+      await updatePosts(postsId.value, {
+        ...ruleForm,
+        tags: [...ruleForm.tags],
+        status: "release"
+        // 先写死是审核通过状态
+        // status: "approved"
+      })
+      ElMessage({
+        message: "发布成功，待审核中",
+        type: "success"
+      })
+      router.push("/")
     } else {
       console.log("error submit!", fields)
     }
@@ -271,6 +282,29 @@ const options = Array.from({ length: 10000 }).map((_, idx) => ({
   value: `${idx + 1}`,
   label: `${idx + 1}`
 }))
+
+console.log(route.query);
+const initRuleInfo =async (route:any) => {
+  if (route.query.type === 'reEdit' && route.query.id) {
+    postsId.value = route.query.id
+    const result = await getMyPostContent({
+      postId: route.query.id
+    })
+    ruleForm.summary = result.data.summary
+    ruleForm.tags = result.data.tags.map((item:any) => item.id)
+    ruleForm.title = result.data.title
+    editHeaderRef.value.inputValue = result.data.title
+    ruleForm.coverImg = result.data.coverImg
+    ruleForm.content = result.data.content
+    ruleForm.contentHtml = result.data.contentHtml
+    ruleForm.sortId = result.data.sort.id
+    console.log(result);
+    
+  }
+}
+watchEffect(() => {
+  initRuleInfo(route)
+})
 </script>
 
 <style scoped lang="less">
@@ -286,6 +320,11 @@ const options = Array.from({ length: 10000 }).map((_, idx) => ({
     color: #2d2d2d !important;
     padding-bottom: 10px;
     border-bottom: 1px solid #c1c1c1;
+  }
+  :deep(.el-drawer) {
+    @media screen and (max-width: 700px) {
+      width: 80% !important;
+    }
   }
 }
 .avatar-uploader .avatar {

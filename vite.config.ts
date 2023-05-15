@@ -12,6 +12,8 @@ import { presetUno, presetAttributify, presetIcons } from "unocss"
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // 静态资源基础路径 base: './' || '',
+  // base: process.env.NODE_ENV === "production" ? "./" : "/",
   plugins: [
     vue(),
     vueJsx(),

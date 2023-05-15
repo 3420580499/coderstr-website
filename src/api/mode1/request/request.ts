@@ -1,5 +1,7 @@
 import { BASE_URT, TIME_OUT } from "./config"
 import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios"
+import { ElMessage } from "element-plus"
+import local from "@/utils/localStorage"
 
 interface RequestInterface {
   instance: AxiosInstance
@@ -16,11 +18,11 @@ class StrRequest implements RequestInterface {
 
     this.instance.interceptors.request.use(
       (config: AxiosRequestConfig) => {
+        const token = local.getItem("token")
         // 想做的一些操作
         // 1.给请求添加token
         // 2.isLoading动画
-        config.headers!.Authorization =
-          "Bearer " + localStorage.getItem("token")
+        config.headers!.Authorization = "Bearer " + (token ? token : "")
         // config.headers!.id = localStorage.getItem("id")
         return config
       },
@@ -34,6 +36,18 @@ class StrRequest implements RequestInterface {
       },
       (err) => {
         console.log(err)
+        if (err.response.data.statusCode === 401) {
+          ElMessage.error("用户没有权限")
+          setTimeout(() => {
+            if(location.pathname !== '/login') {
+              location.href = '/login'
+            }
+          },100)
+        }
+        else if (err.response.data.error === "Unauthorized") {
+          ElMessage.error("登录过期，请重新登录")
+        }
+        else ElMessage.error(err.response.data.error)
       }
     )
   }

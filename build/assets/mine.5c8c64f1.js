@@ -1,0 +1,1 @@
+import{_ as e,o as _,c}from"./index.e7c5e7f8.js";const n={},s={class:"mine"};function t(a,o){return _(),c("div",s,"mine")}const r=e(n,[["render",t],["__scopeId","data-v-267cdaa6"]]);export{r as default};

@@ -32,6 +32,25 @@
       preview-only
     >
     </md-editor-v3>
+    <div class="posts_footer">
+      <div class="left">
+        <div class="info_name">分类:</div>
+        <el-tag type="success" class="mx-1" effect="dark">
+          {{ postsDetail.sort.name }}
+        </el-tag>
+      </div>
+      <div class="right">
+        <div class="info_name">标签:</div>
+        <el-tag
+          class="mx-1"
+          effect="dark"
+          v-for="item in postsDetail.tags"
+          :key="item.id"
+        >
+          {{ item.name }}
+        </el-tag>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -40,12 +59,16 @@ import MdEditorV3 from "md-editor-v3"
 
 import { getRemoteImgPath } from "@/utils/getStaticImgPath"
 import { getYYYYMMDD } from "@/utils/formateDate"
-import { ref } from "vue"
+import { ref, watchEffect } from "vue"
 
 const props = defineProps<{
   postsDetail: any
 }>()
-const content = ref(props.postsDetail?.content)
+const content = ref<string>("")
+// 直接拿到的props可能不是请求后的新值
+watchEffect(() => {
+  content.value = props.postsDetail?.content
+})
 </script>
 
 <style scoped lang="less">
@@ -93,6 +116,33 @@ const content = ref(props.postsDetail?.content)
           height: 180px;
         }
       }
+    }
+  }
+  .posts_footer {
+    padding-left: 20px;
+    padding-bottom: 30px;
+    display: flex;
+    @media screen and (max-width: 800px) {
+      display: block;
+    }
+    line-height: 24px;
+    .left {
+      .info_name {
+        color: #515767;
+        margin-right: 8px;
+      }
+      display: flex;
+      margin-right: 20px;
+      @media screen and (max-width: 800px) {
+        margin-bottom: 15px;
+      }
+    }
+    .right {
+      .info_name {
+        color: #515767;
+        margin-right: 8px;
+      }
+      display: flex;
     }
   }
 }

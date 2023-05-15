@@ -3,7 +3,7 @@
     <div style="border-bottom: 1px solid #e4e6eb; padding-bottom: 15px">
       目录
     </div>
-    <md-catalog editor-id="default_editor" :scroll-element="scrollElement" />
+    <md-catalog editor-id="default_editor" :scroll-element="scrollElement"/>
   </div>
 </template>
 

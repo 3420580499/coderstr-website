@@ -12,15 +12,15 @@
         <div class="author_name">{{ itemData[0].author?.username }}</div>
         <div class="content">{{ itemData[0].content }}</div>
         <div class="dig_replay" style="margin-top: 10px; margin-bottom: 10px">
-          <div class="dig_info">
+          <!-- <div class="dig_info">
             <DigIcon />
             <div>
               {{ itemData[0].likeCount == 0 ? "点赞" : itemData[0].likeCount }}
             </div>
-          </div>
+          </div> -->
           <div class="replay_info" @click="replayChangeClick(itemData[0].id)">
             <ReplayIcon />
-            <div>回复</div>
+            <div>{{ replayId == itemData[0].id ? "取消回复" : "回复" }}</div>
           </div>
         </div>
         <div class="inner_repaly_input" v-if="itemData[0].id == replayId">
@@ -53,18 +53,18 @@
                 class="children_dig_replay"
                 style="margin-top: 10px; margin-bottom: 10px"
               >
-                <div class="children_dig_info">
+                <!-- <div class="children_dig_info">
                   <DigIcon />
                   <div>
                     {{ item.likeCount == 0 ? "点赞" : item.likeCount }}
                   </div>
-                </div>
+                </div> -->
                 <div
                   class="children_replay_info"
                   @click="replayChangeClick(item.id)"
                 >
                   <ReplayIcon />
-                  <div>回复</div>
+                  <div>{{ replayId == item.id ? "取消回复" : "回复" }}</div>
                 </div>
               </div>
               <div
@@ -91,7 +91,10 @@ import ReplayIcon from "@/assets/svg/replayIcon.vue"
 import CommentInput from "@/base-ui/comment-input/commentInput.vue"
 import { usePostsStore } from "@/stores/posts"
 import { ref } from "vue"
+import { useUserStore } from "@/stores/user"
+import { ElMessage } from "element-plus"
 
+const userStore = useUserStore()
 const content = ref<string>("")
 const postsStore = usePostsStore()
 const props = defineProps<{
@@ -111,11 +114,12 @@ const contentChange = (value: string) => {
   content.value = value
 }
 const commitCommentClick = () => {
+  if (!userStore.userInfo) return ElMessage.error("请先登录")
   postsStore.changeComments({
     replayId: replayId.value,
     content: content.value
   })
-  replayId.value = '0'
+  replayId.value = "0"
 }
 </script>
 

@@ -25,6 +25,10 @@ const publishClick = () => {
 const inputChange = () => {
   emit("publishHandleClick", inputValue.value, false)
 }
+
+defineExpose({
+  inputValue
+})
 </script>
 
 <style scoped lang="less">
